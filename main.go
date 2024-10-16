@@ -60,6 +60,8 @@ func main() {
 
 	v1Router.Post("/feeds", apiCfg.middlewareAuth(apiCfg.handlerCreateFeeds))
 	v1Router.Get("/feeds", apiCfg.handlerGetFeeds)
+	v1Router.Get("/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerFeedFollowsGet))
+	v1Router.Post("/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerFeedFollowCreate))
 	router.Mount("/v1", v1Router)
 
 	port := ":" + PortString
