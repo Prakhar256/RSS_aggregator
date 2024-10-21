@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/Prakhar256/RSS_aggregator/internal/database"
 	"github.com/go-chi/chi"
@@ -19,11 +20,11 @@ type apiConfig struct {
 }
 
 func main() {
-	feed,err:=urlToFeed("https://www.wagslane.dev/index.xml")
-	if err!=nil{
-		log.Fatal(err)
-	}
-	fmt.Println(feed)
+	// feed, err := urlToFeed("https://www.wagslane.dev/index.xml")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// fmt.Println(feed)
 	godotenv.Load()
 	//this will fetch all environment variables form my .env file and put it into my current environment
 
@@ -42,6 +43,7 @@ func main() {
 		log.Println("Can't connect to db")
 	}
 
+	dbQueries := database.New(conn)
 	apiCfg := apiConfig{
 		DB: database.New(conn),
 	}
@@ -69,6 +71,10 @@ func main() {
 	v1Router.Post("/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerFeedFollowCreate))
 	v1Router.Delete("/feed_follows/{feedFollowID}", apiCfg.middlewareAuth(apiCfg.handlerFeedFollowsDelete))
 	router.Mount("/v1", v1Router)
+
+	const collectionConcurrency = 10
+	const collectionInterval = time.Minute
+	go startScraping(dbQueries, collectionConcurrency, collectionInterval)
 
 	port := ":" + PortString
 	fmt.Println("Starting server on port", port)

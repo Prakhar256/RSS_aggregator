@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"sync"
 	"time"
 
 	"github.com/Prakhar256/RSS_aggregator/internal/database"
+	"github.com/google/uuid"
 )
 
 func startScraping(db *database.Queries, concurrency int, timeBetweenRequest time.Duration) {
@@ -43,8 +45,34 @@ func scrapeFeed(db *database.Queries, wg *sync.WaitGroup, feed database.Feed) {
 		log.Printf("Couldn't collect feed %s: %v", feed.Name, err)
 		return
 	}
+
 	for _, item := range feedData.Channel.Item {
-		log.Println("Found post", item.Title)
-	}
+    // Parse the PubDate string into a time.Time value
+    pubDate, err := time.Parse(time.RFC1123Z, item.PubDate)
+    if err != nil {
+        log.Printf("Couldn't parse publication date for post %s: %v", item.PubDate, err)
+        continue // Skip this item if the date can't be parsed
+    }
+
+    // Insert the post into the database
+    _,err = db.CreatePost(context.Background(), database.CreatePostParams{
+        ID:          uuid.New(),
+        CreatedAt:   time.Now(),
+        UpdatedAt:   time.Now(),
+        Title:       item.Title,
+        Description: sql.NullString{
+            String: item.Description,
+            Valid:  item.Description != "",
+        },
+        PublishedAt: pubDate,  // Use the parsed pubDate here
+        Url:         item.Link,
+        FeedID:      feed.ID,
+    })
+
+    if err != nil {
+        log.Printf("Couldn't create post for feed %s: %v", feed.Name, err)
+    }
+}
+
 	log.Printf("Feed %s collected, %v posts found", feed.Name, len(feedData.Channel.Item))
 }
