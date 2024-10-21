@@ -19,6 +19,11 @@ type apiConfig struct {
 }
 
 func main() {
+	feed,err:=urlToFeed("https://www.wagslane.dev/index.xml")
+	if err!=nil{
+		log.Fatal(err)
+	}
+	fmt.Println(feed)
 	godotenv.Load()
 	//this will fetch all environment variables form my .env file and put it into my current environment
 
@@ -62,6 +67,7 @@ func main() {
 	v1Router.Get("/feeds", apiCfg.handlerGetFeeds)
 	v1Router.Get("/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerFeedFollowsGet))
 	v1Router.Post("/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerFeedFollowCreate))
+	v1Router.Delete("/feed_follows/{feedFollowID}", apiCfg.middlewareAuth(apiCfg.handlerFeedFollowsDelete))
 	router.Mount("/v1", v1Router)
 
 	port := ":" + PortString
